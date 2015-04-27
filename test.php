@@ -10,4 +10,6 @@ include "class/Formation.class";
 
 $c = new centre();
 $c->getListeCentreByIdFormation(1);
+
+
 ?>
