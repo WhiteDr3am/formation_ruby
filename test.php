@@ -11,5 +11,6 @@ include "class/Formation.class";
 $c = new centre();
 $c->getListeCentreByIdFormation(1);
 
+// on fait des tests avec github
 
 ?>
