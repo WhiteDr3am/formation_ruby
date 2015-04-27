@@ -1,0 +1,59 @@
+<?php
+
+class Session
+{
+	private $id;
+	private $date_debut;
+	private $eleve;
+	private $formation;
+	private $centre;
+	private $animateur;
+	
+	/*** getter ***/
+	public function getId(){return $this->id;}
+	public function getDate_debut(){return $this->date_debut;}
+	public function getEleve(){return $this->eleve;}
+	public function getFormation(){return $this->formation;}
+	public function getCentre(){return $this->centre;}
+	public function getAnimateur(){return $this->animateur;}
+	
+	/*** setter ***/
+	private function setId($x){$this->id = $x;}
+	private function setDate_debut(date $x){$this->date_debut = $x;}
+	private function setEleve($x){$this->eleve = $x;}
+	private function setFormation($x){$this->formation = $x;}
+	private function setCentre($x){$this->centre = $x;}
+	private function setAnimateur($x){$this->animateur = $x;}
+	
+	public function __toString()
+	{
+		return $this->date_debut . " | " . $this->eleve  . " | " . $this->formation . " | " . $this->centre . " | " . $this->animateur;
+	}
+	
+	public function addSession($id_form,$id_centre,$id_anim,$date_debut,$description)
+	{
+		try {
+			$sql_prep = "INSERT INTO session (id, id_form, id_centre, id_anim, date, description) VALUES (NULL, :id_form, :id_centre, :id_anim, :date, :description)";
+			$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$dbh->beginTransaction();
+				$stmt = $dbh->prepare($sql_prep);
+				$stmt->bindParam(':id_form', $id_form);
+				$stmt->bindParam(':id_centre', $id_centre);
+				$stmt->bindParam(':id_anim', $id_anim);
+				$stmt->bindParam(':date', $date_debut);
+				$stmt->bindParam(':description', $description);
+				$stmt->execute();
+				$stmt->closeCursor();
+			$dbh->commit();
+			$dbh = null;
+		} catch (PDOException $e) {
+			$dbh->rollBack();
+			print "Erreur !: " . $e->getMessage() . "<br/>";
+			$dbh = null;
+			die();
+		}
+	}
+}
+
+?>

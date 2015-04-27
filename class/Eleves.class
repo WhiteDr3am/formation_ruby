@@ -1,0 +1,92 @@
+<?php
+include("config.php");
+class Eleves extends Person
+{
+	private $mdp;
+	
+	/*** getter ***/
+	public function getMdp(){return $this->mdp;}
+	
+	/*** setter ***/
+	private function setMdp(string $x){$this->mdp = $x;}
+
+	/*** Private function ***/
+	
+	/*** Public function ***/
+	public function __construct($nom=NULL, $prenom=NULL, $mdp=NULL)
+	{
+		if(isset($nom))
+		{
+			if(!isset($id))
+			{
+				$this->nom = $nom;
+				$this->prenom = $prenom;
+				$this->mdp = $mdp;
+				try {
+					$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+					$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+					$dbh->beginTransaction();
+						$id_personne = parent::add_bdd($nom,$prenom,$dbh);
+						$stmt = $dbh->prepare("INSERT INTO eleve (id, id_personne, mdp) VALUES (NULL, :id_personne, :mdp)");
+						$stmt->bindParam(':id_personne', $id_personne);
+						$stmt->bindParam(':mdp', $mdp);
+						$stmt->execute();
+						$stmt->closeCursor();
+					$dbh->commit();
+					$dbh = null;
+				} catch (PDOException $e) {
+					$dbh->rollBack();
+					print "Erreur !: " . $e->getMessage() . "<br/>";
+					$dbh = null;
+					die();
+				}
+			}
+		}
+	}
+	
+	public function __toString()
+	{
+		return $this->mdp;
+	}
+	
+	public function connexion($nom, $prenom, $mdp)
+	{
+		$sql_prep = "SELECT p.id
+					FROM eleve as e
+					JOIN personne as p ON e.id_personne = p.id
+					WHERE p.nom = :nom
+					AND p.prenom = :prenom
+					AND e.mdp = :mdp";
+		try {
+			$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$dbh->beginTransaction();
+				$id_personne = parent::add_bdd($nom,$prenom,$dbh);
+				$stmt = $dbh->prepare($sql_prep);
+				$stmt->bindParam(':nom', $nom);
+				$stmt->bindParam(':prenom', $prenom);
+				$stmt->bindParam(':mdp', $mdp);
+				$stmt->execute();
+				$resu = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+			$dbh->commit();
+			$dbh = null;
+		} catch (PDOException $e) {
+			$dbh->rollBack();
+			print "Erreur !: " . $e->getMessage() . "<br/>";
+			$dbh = null;
+			die();
+		}
+		if(count($resu)!=0)
+		{
+			$this->setId_personne($resu[0]["id"]);
+			$this->setNom($nom);
+			$this->setPrenom($prenom);
+			$resu["objet"] = $this;
+		}
+		return $resu;
+	}
+	
+}
+
+?>

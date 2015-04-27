@@ -1,0 +1,85 @@
+<?php
+
+class Animateur extends Person
+{
+	private $entreprise;
+	private $mesSession; // tableau des session auquel participe l'animateur
+	
+	/*** getter ***/
+	public function getEntreprise(){return $this->entreprise;}
+	
+	/*** setter ***/
+	private function setEntreprise($x){$this->entreprise = $x;}
+	
+	public function __construct($nom=NULL,$prenom=NULL,$entreprise=NULL,$id=NULL)
+	{
+		if(isset($nom))
+		{
+			if(!isset($id))
+			{
+				$this->nom = $nom;
+				$this->prenom = $prenom;
+				$this->entreprise = $entreprise;
+			
+				try {
+					$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+					$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+					$dbh->beginTransaction();
+						$id_personne = parent::add_bdd($nom,$prenom,$dbh);
+						$stmt = $dbh->prepare("INSERT INTO animateur (id, id_personne, entreprise) VALUES (NULL, :id_personne, :entreprise)");
+						$stmt->bindParam(':id_personne', $id_personne);
+						$stmt->bindParam(':entreprise', $entreprise);
+						$stmt->execute();
+						$stmt->closeCursor();
+					$dbh->commit();
+					$dbh = null;
+				} catch (PDOException $e) {
+					$dbh->rollBack();
+					print "Erreur !: " . $e->getMessage() . "<br/>";
+					$dbh = null;
+					die();
+				}
+			}
+		}
+	}
+	
+	public function __toString()
+	{
+		return $this->entreprise . " | " . parent::__toString();
+	}
+	
+	public function getListeAnim()
+	{
+		$sql_prep = "SELECT a.id, p.nom, p.prenom, a.entreprise
+					FROM animateur as a
+					JOIN personne as p ON a.id_personne = p.id";
+		try {
+			$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$dbh->beginTransaction();
+				$stmt = $dbh->prepare($sql_prep);
+				$stmt->execute();
+				$resu = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+			$dbh->commit();
+			$dbh = null;
+		} catch (PDOException $e) {
+			$dbh->rollBack();
+			print "Erreur !: " . $e->getMessage() . "<br/>";
+			$dbh = null;
+			die();
+		}
+		foreach($resu as $k=>$v)
+		{
+			$anim = new animateur();
+			$anim->setID($v['id']);
+			$anim->setNom($v['nom']);
+			$anim->setPrenom($v['prenom']);
+			$anim->setEntreprise($v['entreprise']);
+			$anims[] = $anim;
+		}
+		return $anims;
+	}
+}
+
+?>

@@ -1,0 +1,36 @@
+<?php
+
+class Person
+{
+	protected $id_personne;
+	protected $nom;
+	protected $prenom;
+	
+	/*** getter ***/
+	public function getId_personne(){return $this->id;}
+	public function getNom(){return $this->nom;}
+	public function getPrenom(){return $this->prenom;}
+	
+	/*** setter ***/
+	protected function setId_personne($x){$this->id_personne = $x;}
+	protected function setNom($x){$this->nom = $x;}
+	protected function setPrenom($x){$this->prenom = $x;}
+	
+	/*** Protected function ***/
+	protected function add_bdd($nom,$prenom,$dbh)
+	{
+		$stmt1 = $dbh->prepare("INSERT INTO personne (id, nom, prenom) VALUES (NULL, :nom, :prenom)");
+		$stmt1->bindParam(':nom', $nom);
+		$stmt1->bindParam(':prenom', $prenom);
+		$stmt1->execute();
+		$stmt1->closeCursor();
+		return $dbh->lastInsertId();
+	}
+	
+	public function __toString()
+	{
+		return $this->nom . " | " . $this->prenom;
+	}
+}
+
+?>

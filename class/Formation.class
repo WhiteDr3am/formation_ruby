@@ -1,0 +1,193 @@
+<?php
+
+class Formation
+{
+	private $id;
+	private $titre;
+	private $prix;
+	private $centres; //tableau d'objet de type centre
+	
+	
+	/*** getter ***/
+	public function getTitre(){return $this->titre;}
+	public function getPrix(){return $this->prix;}
+	public function getId(){return $this->id;}
+	
+	/*** setter ***/
+	public function setTitre($x){$this->titre = $x;}
+	public function setPrix($x){$this->prix = $x;}
+	public function setId($x){$this->id = $x;}
+	
+	public function __construct($titre=NULL,$prix=NULL,$id=NULL)
+	{		
+		if(isset($titre))
+		{
+			if(!isset($id))
+			{
+				try {
+					$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+					$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+					$dbh->beginTransaction();
+						$stmt = $dbh->prepare("INSERT INTO formation (id, titre, prix) VALUES (NULL, :titre, :prix)");
+						$stmt->bindParam(':titre', $titre);
+						$stmt->bindParam(':prix', $prix);
+						$stmt->execute();
+						$stmt->closeCursor();
+						$this->id = $dbh->lastInsertId();
+					$dbh->commit();
+					$dbh = null;
+				} catch (PDOException $e) {
+					$dbh->rollBack();
+					print "Erreur !: " . $e->getMessage() . "<br/>";
+					$dbh = null;
+					die();
+				}
+			}
+			else
+			{
+				$sql_prep = "SELECT *
+							FROM formation as f
+							WHERE id=:id";
+				try {
+					$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+					$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+					$dbh->beginTransaction();
+						$stmt = $dbh->prepare($sql_prep);
+						$stmt->bindParam(':id', $id);
+						$stmt->execute();
+						$resu = $stmt->fetchAll(PDO::FETCH_ASSOC);
+						$stmt->closeCursor();
+					$dbh->commit();
+					$dbh = null;
+				} catch (PDOException $e) {
+					$dbh->rollBack();
+					print "Erreur !: " . $e->getMessage() . "<br/>";
+					$dbh = null;
+					die();
+				}
+				$this->centre = getCentre_db($id);			
+			}
+		}
+	}
+	
+	
+	public function __toString()
+	{
+		return $this->titre . " | " . $this->prix;
+	}
+	
+	public function lister_formation()
+	{
+		$sql_prep = "SELECT f.id f_id, f.titre, f.prix, c.id as c_id, c.lieu, c.nom FROM formation as f
+					LEFT JOIN F_C ON F_C.id_form = f.id
+					LEFT JOIN centre as c ON F_C.id_centre = c.id";
+		try {
+			$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$dbh->beginTransaction();
+				$stmt = $dbh->prepare($sql_prep);
+				$stmt->execute();
+				$resu = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+			$dbh->commit();
+			$dbh = null;
+		} catch (PDOException $e) {
+			$dbh->rollBack();
+			print "Erreur !: " . $e->getMessage() . "<br/>";
+			$dbh = null;
+			die();
+		}
+		for($i=0;count($resu)>$i;$i++)
+		{
+			if(!isset($f_id) || $f_id != $resu[$i]["f_id"])
+			{
+				if(isset($f))
+				{
+					$tab_resu[]=$f;
+				}
+				$f = new formation();
+				$f->setId($resu[$i]["f_id"]);
+				$f->setTitre($resu[$i]["titre"]);
+				$f->setPrix($resu[$i]["prix"]);
+				
+			}
+			if(isset($resu[$i]["c_id"]))
+			{
+				$e = new centre();
+				$e->setId($resu[$i]["c_id"]);
+				$e->setLieu($resu[$i]["lieu"]);
+				$e->setNom($resu[$i]["nom"]);
+				$f->addCentre($e);
+			}
+			$f_id = $resu[$i]["f_id"];
+			if($i==count($resu)-1)
+			{
+				$tab_resu[]=$f;
+			}
+		}
+		return $tab_resu;
+	}
+	
+	public function addCentre($x)
+	{
+		$this->centres[] = $x;
+	}
+	
+	public function addFC($id_f, $id_c)
+	{
+		$sql_prep = "INSERT INTO F_C (id, id_form, id_centre) VALUES (NULL, :id_f, :id_c)";
+		try {
+			$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$dbh->beginTransaction();
+				$stmt = $dbh->prepare($sql_prep);
+				$stmt->bindParam(':id_f', $id_f);
+				$stmt->bindParam(':id_c', $id_c);
+				$stmt->execute();
+				$stmt->closeCursor();
+			$dbh->commit();
+			$dbh = null;
+		} catch (PDOException $e) {
+			$dbh->rollBack();
+			print "Erreur !: " . $e->getMessage() . "<br/>";
+			$dbh = null;
+			die();
+		}
+	}
+	
+	/*** private function ***/ 
+	
+	private function getCentre_db($f_id)
+	{
+		$sql_prep = "SELECT c.id, c.lieu, c.nom
+					FROM centre as c
+					JOIN F_C as fc ON c.id=fc.id_centre
+					JOIN formation as f ON fc.id_form = f.id
+					WHERE f.id=:f_id";
+		try {
+			$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$dbh->beginTransaction();
+				$stmt = $dbh->prepare($sql_prep);
+				$stmt->bindParam(':f_id', $f_id);
+				$stmt->execute();
+				$resu = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+			$dbh->commit();
+			$dbh = null;
+		} catch (PDOException $e) {
+			$dbh->rollBack();
+			print "Erreur !: " . $e->getMessage() . "<br/>";
+			$dbh = null;
+			die();
+		}
+		foreach($resu as $k=>$v)
+		{
+			$centre[] = new centre($v['lieu'],$v['nom'],$v['id']);
+		}
+		return $centre;
+	}
+	
+}
+
+?>

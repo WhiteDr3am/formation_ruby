@@ -1,0 +1,119 @@
+<?php
+
+class Centre
+{
+	private $id;
+	private $lieu;
+	private $nom;
+	private $formations; // tableau d'objet de type formation
+	
+	/*** getter ***/
+	public function getId(){return $this->id;}
+	public function getLieu(){return $this->lieu;}
+	public function getNom(){return $this->nom;}
+	public function getFormation(){return $this->nom;}
+	
+	/*** setter ***/
+	public function setId($x){$this->id = $x;}
+	public function setLieu($x){$this->lieu = $x;}
+	public function setNom($x){$this->nom = $x;}
+	public function setFormation($x){$this->formation = $x;}
+	
+	public function __construct($lieu=NULL,$nom=NULL,$id=NULL)
+	{
+		if(isset($lieu))
+		{
+			if(!isset($id))
+			{
+				// $id vaux NULL on ajoute a la bdd
+				try {
+					$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+					$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+					$dbh->beginTransaction();
+						$stmt = $dbh->prepare("INSERT INTO centre (id, lieu, nom) VALUES (NULL, :lieu, :nom)");
+						$stmt->bindParam(':lieu', $lieu);
+						$stmt->bindParam(':nom', $nom);
+						$stmt->execute();
+						$stmt->closeCursor();
+					$dbh->commit();
+					$dbh = null;
+				} catch (PDOException $e) {
+					$dbh->rollBack();
+					print "Erreur !: " . $e->getMessage() . "<br/>";
+					$dbh = null;
+					die();
+				}
+			}
+			else
+			{
+				// $id est remplit on crée un objet complet
+				echo "id a été rentrer";
+				exit();
+			}
+		}
+	}
+	
+	public function __toString()
+	{
+		return $this->lieu . " | " . $this->nom;
+	}
+	
+	public function getListeCentreByIdFormation($id_f)
+	{
+		$sql_prep = "SELECT * 
+					FROM centre as c
+					JOIN F_C ON c.id = F_C.id_centre
+					WHERE F_C.id_form = :id_f";
+		try {
+			$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$dbh->beginTransaction();
+				$stmt = $dbh->prepare($sql_prep);
+				$stmt->bindParam(':id_f', $id_f);
+				$stmt->execute();
+				$resu = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+			$dbh->commit();
+			$dbh = null;
+		} catch (PDOException $e) {
+			$dbh->rollBack();
+			print "Erreur !: " . $e->getMessage() . "<br/>";
+			$dbh = null;
+			die();
+		}
+	}
+	
+	public function getListeCentre()
+	{
+		$sql_prep = "SELECT * 
+					FROM centre";
+		try {
+			$dbh = new PDO('mysql:host=' . HOST . ';dbname=' . BDD, PSEUDO_BDD, MDP_BDD);
+			$dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+			$dbh->beginTransaction();
+				$stmt = $dbh->prepare($sql_prep);
+				$stmt->execute();
+				$resu = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+			$dbh->commit();
+			$dbh = null;
+		} catch (PDOException $e) {
+			$dbh->rollBack();
+			print "Erreur !: " . $e->getMessage() . "<br/>";
+			$dbh = null;
+			die();
+		}
+		foreach($resu as $k=>$v)
+		{
+			$centre = new centre();
+			$centre->setLieu($v['lieu']);
+			$centre->setNom($v['nom']);
+			$centre->setId($v['id']);
+			$centres[] = $centre;
+		}
+		return $centres;
+	}
+	
+}
+
+?>
