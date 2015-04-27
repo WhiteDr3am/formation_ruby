@@ -1,4 +1,7 @@
 <?php
+
+// c'est trop drôle des test github
+
 include("config.php");
 
 /*** Création des tables ***/
